@@ -1,0 +1,167 @@
+<template>
+  <div>
+    <el-row id="area" :gutter="10" style="margin:30px 10px 10px 15px;">
+      <el-col :span="11">
+        <el-card :body-style="{ padding: '5px' }">
+          <div style="padding: 5px">
+            当前编辑的文件名：
+            <span style="color: #409EFF">
+            {{this.editPdfName}}
+            </span>
+          </div>
+        </el-card>
+        <div style="height: 10px"></div>
+        <el-card :body-style="{ padding: '0px' }">
+          <div v-show="showPdf">
+            <div ref="pdfviewer" class="pdfobject-container"></div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="13" style="height:800px;overflow-y: scroll;" v-if="pdfId">
+        <el-tabs type="border-card" v-if="showTabs">
+          <el-tab-pane :label="item.package_name" v-for="(item,index) in packageList">
+            <el-row>
+              <el-col>
+                <el-button type="danger" @click="onDeleteCompanyPackage(item.row_id)" style="margin-bottom: 10px;float: right">删除该套件</el-button>
+              </el-col>
+            </el-row>
+            <basic-table table-name="impairment_test_time" :pdf-id="pdfId" title="减值测试安排-减值测试时间" :company-package-id="item.row_id"></basic-table>
+            <basic-table table-name="impairment_test_flow" :pdf-id="pdfId" title="减值测试安排-减值测试流程" :company-package-id="item.row_id"></basic-table>
+            <basic-table table-name="impairment_test_compensation_conditions" :pdf-id="pdfId" title="减值测试安排-减值测试补偿条件" :company-package-id="item.row_id"></basic-table>
+            <basic-form table-name="testing_compensation_arrangement_compensation_amount" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿金额" :company-package-id="item.row_id"></basic-form>
+            <basic-form table-name="impairment_testing_compensation_arrangement_compensation_mode" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式" :company-package-id="item.row_id"></basic-form>
+            <basic-form table-name="mode_impairment_compensation_share_quantity_adjustment" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式-减值补偿股份数量调整" :company-package-id="item.row_id"></basic-form>
+            <basic-form table-name="compensation_mode_share_compensation_implementation" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式-股份补偿实施" :company-package-id="item.row_id"></basic-form>
+            <basic-form table-name="arrangement_compensation_mode_cash_compensation_implementation" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式-现金补偿实施" :company-package-id="item.row_id"></basic-form>
+            <basic-form table-name="compensation_implementation_cash_compensation_special_account" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式-现金补偿实施-现金补偿专用账户" :company-package-id="item.row_id"></basic-form>
+            <basic-table table-name="special_account_special_funs_outbound_proportional_limitation" :pdf-id="pdfId" title="减值测试安排-减值测试补偿安排-补偿方式-现金补偿实施-现金补偿专用账户-专用账户内资金转出比例限制" :company-package-id="item.row_id"></basic-table>
+          </el-tab-pane>
+          <el-tab-pane label="新增套件">
+            <basic-new-target-package :pdf-id="pdfId" :module-name="this.$options.name" :company-package-list="packageList" @sendNewTargetPackage="onNewTargetPackage"></basic-new-target-package>
+          </el-tab-pane>
+        </el-tabs>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script>
+  import BasicForm from '../../components/Form/BasicForm'
+  import BasicTable from '../../components/Form/BasicTable'
+  import PDFObject from 'pdfobject'
+  import { deleteCompanyPackage, getAllCompanyPackage } from '../../api/form'
+  import BasicNewTargetPackage from '../../components/Form/BasicNewTargetPackage'
+
+  export default {
+    name: 'ImpairmentTestArrangement',
+    components: { BasicNewTargetPackage, BasicTable, BasicForm },
+
+    data() {
+      return {
+        screenHeight: document.documentElement.clientHeight,
+        showPdf: true,
+        showTabs: true,
+        packageList: []
+      }
+    },
+    computed: {
+      pdfId: function() {
+        return this.$store.state.app.editPdfId
+      },
+      editPdfName: function() {
+        return this.$store.state.app.editPdfName
+      },
+      documentOriginLocation: function() {
+        return '/src/pdf/' + this.$store.state.app.editPdfName
+      }
+
+    },
+    mounted() {
+      if (!this.pdfId) {
+        this.$alert('请先选择要编辑的文件', '温馨提示', {
+          confirmButtonText: '去选择文件',
+          center: true,
+          callback: action => {
+            this.$router.push({ name: 'pdfList' })
+          }
+        })
+      } else {
+        this.initPackageList()
+      }
+    },
+    watch: {
+      toPage: {
+        handler: function(val, oldVal) {
+          this.$nextTick(function() {
+            const pdfnode = this.$refs.pdfviewer
+            // const pdfnodeleft = this.$refs.pdfviewerleft
+            PDFObject.embed(this.documentOriginLocation, pdfnode, val)
+            // PDFObject.embed(this.documentOriginLocation, pdfnodeleft, val)
+          })
+        },
+        deep: true,
+        immediate: true
+      }
+    },
+    methods: {
+      reloadPanel() {
+        let _this = this
+        this.initPackageList().then(function() {
+          _this.showTabs = false
+          _this.$nextTick(() => {
+            _this.showTabs = true
+          })
+        })
+      },
+      onNewTargetPackage() {
+        this.$message({
+          message: '生成表格成功',
+          type: 'success'
+        })
+        this.reloadPanel()
+      },
+      onDeleteCompanyPackage(row_id) {
+        let _this = this
+        deleteCompanyPackage(row_id).then(response => {
+          let res = response.data
+          if (res.code === 1) {
+            this.$message({
+              message: '删除成功',
+              type: 'success'
+            })
+            _this.reloadPanel()
+          }
+        }).catch(exception => {
+          console.log(exception)
+        })
+      },
+      initPackageList() {
+        return new Promise((resolve, reject) => {
+          getAllCompanyPackage(this.pdfId, this.$options.name).then(response => {
+            let res = response.data
+            this.packageList = res.data
+            resolve('success')
+          }).catch(exception => {
+            console.log(exception)
+            reject('fail')
+          })
+        })
+      }
+    }
+
+  }
+</script>
+
+<style scoped>
+  .pdfobject-container {
+    height: 800px;
+    width: 100%;
+    display: block;
+    margin: auto;
+  }
+
+  .pdfobject {
+    border: 1px solid #666;
+  }
+</style>
+
