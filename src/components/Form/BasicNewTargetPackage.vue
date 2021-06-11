@@ -42,7 +42,10 @@
     props: {
       'pdfId': '',
       'moduleName': '',
-      'companyPackageList': []
+      'companyPackageList': {
+        type: Array,
+        default: []
+      }
     },
     data() {
       return {
@@ -66,7 +69,6 @@
             type: 'error'
           })
         } else {
-          console.log(this.name)
           saveCompanyPackage(this.pdfId, this.moduleName, this.packageName, this.companyList).then(response => {
             let res = response.data
             if (res.code === 1) {
@@ -85,10 +87,7 @@
       filterPackage(company_id) {
         let companyPackageList = this.companyPackageList
         for (let item of companyPackageList) {
-          console.log(company_id)
-          console.log(item)
           if (item.company_id_list.find(value => parseInt(value) === company_id)) {
-            console.log(item.package_name)
             return '——包含在组合：' + item.package_name
           }
         }

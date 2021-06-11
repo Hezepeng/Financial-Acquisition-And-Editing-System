@@ -122,18 +122,30 @@
       },
       onDeleteCompanyPackage(row_id) {
         let _this = this
-        deleteCompanyPackage(row_id).then(response => {
-          let res = response.data
-          if (res.code === 1) {
-            this.$message({
-              message: '删除成功',
-              type: 'success'
-            })
-            _this.reloadPanel()
-          }
-        }).catch(exception => {
-          console.log(exception)
+        this.$confirm('此操作将永久删除本标的公司组合下的【资产评估】【业绩承诺和补偿】【业绩承诺完成情况】【减值测试安排】【超额业绩奖励安排】的所有录入数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          deleteCompanyPackage(row_id).then(response => {
+            let res = response.data
+            if (res.code === 1) {
+              this.$message({
+                message: '删除成功',
+                type: 'success'
+              })
+              _this.reloadPanel()
+            }
+          }).catch(exception => {
+            console.log(exception)
+          })
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          })
         })
+
       },
       initPackageList() {
         return new Promise((resolve, reject) => {

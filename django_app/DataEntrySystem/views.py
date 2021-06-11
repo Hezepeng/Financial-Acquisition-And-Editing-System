@@ -285,7 +285,6 @@ def delete_company_package_fun(row_id):
     company = target_company_used_in_package.objects.filter(company_id=int(company_id), module_name=moduleName).first()
     company.set_attr('used_flag', False)
     company.save()
-  # TODO 删除所有包含标的公司组合的表的数据
   obj.delete()
   data = {
     'code': 1,

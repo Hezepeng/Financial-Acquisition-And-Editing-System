@@ -21,6 +21,7 @@
               :before-remove="beforeRemove"
               :on-success="onSubmitSuccess"
               multiple
+              :auto-upload="false"
               :limit="100"
               :on-exceed="handleExceed"
               :file-list="fileList">
